@@ -1,0 +1,39 @@
+# Built application 文件
+*.apk
+*.ap_
+
+# ART/Dalvik VM 文件
+*.dex
+
+# Java class 文件
+*.class
+
+# Generated 文件夹
+bin/
+gen/
+out/
+.idea/
+# Eclipse生成的Proguard文件夹
+proguard/
+# Android Studio导航编辑器临时文件
+.navigation/
+
+# Android Studio captures folder
+captures/
+# Gradle files
+.gradle/
+build/
+
+*.iml
+.gradle
+/local.properties
+
+.DS_Store
+/build
+.externalNativeBuild
+.cxx
+local.properties
+*/build/
+*/debug/
+/gradle
+
