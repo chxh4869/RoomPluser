@@ -82,28 +82,63 @@ public class MigrationCreater {
                 }
             }
 
+            Map<Integer,List<AlterTable.Action>> verMaps = new HashMap<>();
+
             //判断字段增加标签
             for (Annotation t : as) {
                 if (t.annotationType().equals(AnnoAlertTable.class)) {
                     AnnoAlertTable item = (AnnoAlertTable) t;
-                    if (item.action() == AlterTable.Action.Add) {
-                        packSQL4AddItem(tableName,
-                                item.oldVer(), item.newVer(), item.colName(), item.colType());
-                    } else {
-                        chekVer(item.newVer());
-                        //reBuildTable(tableName, item.newVer());
+//                    if (item.action() == AlterTable.Action.Add) {
+//                        packSQL4AddItem(tableName,
+//                                item.oldVer(), item.newVer(), item.colName(), item.colType());
+//                    } else {
+//                        chekVer(item.newVer());
+//                        //reBuildTable(tableName, item.newVer());
+//                    }
+
+                    if(!verMaps.containsKey(item.newVer())){
+                        List<AlterTable.Action> alertInfo = new ArrayList<>();
+                        alertInfo.add(item.action());
+                        verMaps.put(item.newVer(), alertInfo);
                     }
+
+                    verMaps.get(item.newVer()).add(item.action());
+
                 }
                 if (t.annotationType().equals(AnnoAlertTables.class)) {
                     AnnoAlertTables table = (AnnoAlertTables) t;
                     for (AnnoAlertTable item : table.value()) {
-                        if (item.action() == AlterTable.Action.Add) {
-                            packSQL4AddItem(tableName,
-                                    item.oldVer(), item.newVer(), item.colName(), item.colType());
-                        } else {
-                            chekVer(item.newVer());
-                            //reBuildTable(tableName, item.newVer());
+//                        if (item.action() == AlterTable.Action.Add) {
+//                            packSQL4AddItem(tableName,
+//                                    item.oldVer(), item.newVer(), item.colName(), item.colType());
+//                        } else {
+//                            chekVer(item.newVer());
+//                            //reBuildTable(tableName, item.newVer());
+//                        }
+                        if(!verMaps.containsKey(item.newVer())){
+                            List<AlterTable.Action> alertInfo = new ArrayList<>();
+                            alertInfo.add(item.action());
+                            verMaps.put(item.newVer(), alertInfo);
                         }
+
+                        verMaps.get(item.newVer()).add(item.action());
+                    }
+                }
+            }
+
+            for(int i=2;i<=newVer;i++){
+                if(modifiesMap.containsKey(i)){
+                    if(verMaps.get(i)==null){
+                        throw new Exception("need Add AnnoAlterTable to remark what have been change to table in this new version");
+                    }
+                    boolean changgTable = false;
+                    for(AlterTable.Action action:verMaps.get(i)){
+                        if(action == AlterTable.Action.Del || action == AlterTable.Action.Mod){
+                            changgTable = true;
+                        }
+                    }
+                    if(!changgTable){
+                        throw new Exception("need Add AnnoAlterTable to remark what have been change to table in this new version");
                     }
                 }
             }
@@ -138,7 +173,7 @@ public class MigrationCreater {
             }
 
             //
-            for (int i = 1; i <= newVer; i++) {
+            for (int i = 2; i <= newVer; i++) {
                 if (modifiesMap.containsKey(i)) {
                     copyData2NewTable(tableName, i, colNamesOlder,colNames);
                     reNameTable(tableName, i);
@@ -179,6 +214,38 @@ public class MigrationCreater {
 
         return migrations;
     }
+
+//    public Migration[] create(int oldVer,int newVer,Class... arryCls) throws Exception{
+//        Migration[] migrations = null;
+//        //ArrayList<Migration> listOfMigration = new ArrayList<>();
+//        for(int i=1;i<=newVer;i++) {
+//            for (Class cls : arryCls) {
+//                Migration tmpMig = new MyMigration(cls, oldVer, newVer) {
+//
+//                    @Override
+//                    public void migrate(@NonNull SupportSQLiteDatabase database) {
+//                        this.excude(database, 1);
+//                    }
+//                };
+//                list.add(tmpMig);
+//            }
+//        }
+//
+//        if (list.size() != 0) {
+//            migrations = new Migration[list.size()];
+//            System.arraycopy(list.toArray(), 0, migrations, 0, list.size());
+//        } else {
+//            migrations = new Migration[1];
+//            migrations[0] = new MyMigration(0, 0, null) {
+//                @Override
+//                public void migrate(@NonNull SupportSQLiteDatabase database) {
+//
+//                }
+//            };
+//        }
+//
+//        return migrations;
+//    }
 
     //创建新的临时表
     private void reBuildTable(String table, int newVer) throws Exception {
@@ -250,6 +317,7 @@ public class MigrationCreater {
 
     private abstract class MyMigration extends Migration {
         private List<String> sqlList;
+        Class clas;
 
         public MyMigration(int oldv, int newv, List sql) {
             super(oldv, newv);
@@ -261,10 +329,19 @@ public class MigrationCreater {
             }
         }
 
+//        public MyMigration(Class clas,int oldVer,int newVer){
+//            super(oldVer,newVer);
+//            this.clas = clas;
+//        }
+
         public void excude(SupportSQLiteDatabase database) {
             for (String sql : sqlList) {
                 database.execSQL(sql);
             }
+        }
+
+        public void excude(SupportSQLiteDatabase database,int t){
+
         }
     }
 }
